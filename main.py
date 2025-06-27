@@ -119,7 +119,7 @@ class XLookupApp(QWidget):
             return
 
         try:
-            map_series = self.df_b.set_index(lookup_b)[value_b]
+            map_series = self.df_b.drop_duplicates(subset=[lookup_b]).set_index(lookup_b)[value_b]
             self.df_a[new_col] = self.df_a[lookup_a].map(map_series)
         except KeyError as e:
             QMessageBox.critical(self, "Error", f"Column not found:\n{e}")
