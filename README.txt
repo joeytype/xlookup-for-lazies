@@ -2,7 +2,6 @@
 
 A Python GUI application that performs an Excel-like XLOOKUP operation between two CSV files, adding a column from one file to another based on a common key.
 
-![CSV XLOOKUP Tool Screenshot](screenshot.png) *[Note: Add a screenshot later]*
 
 ## Features
 
