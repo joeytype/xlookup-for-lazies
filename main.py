@@ -2,9 +2,10 @@ import sys
 import pandas as pd
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QComboBox,
-    QLineEdit, QFileDialog, QMessageBox, QGridLayout
+    QLineEdit, QFileDialog, QMessageBox, QGridLayout, QCheckBox
 )
 from PyQt5.QtCore import Qt
+
 
 class XLookupApp(QWidget):
     def __init__(self):
@@ -15,7 +16,7 @@ class XLookupApp(QWidget):
         self.file_b = None
 
         self.setWindowTitle("CSV XLOOKUP Tool")
-        self.setFixedSize(600, 350)
+        self.setFixedSize(600, 380)  # Increased height for checkbox
 
         self.init_ui()
 
@@ -62,10 +63,15 @@ class XLookupApp(QWidget):
         self.value_col_b = QComboBox()
         layout.addWidget(self.value_col_b, 5, 1, 1, 2)
 
+        # Case sensitivity checkbox
+        self.case_sensitive_check = QCheckBox("Case sensitive matching")
+        self.case_sensitive_check.setChecked(True)  # Default to case sensitive
+        layout.addWidget(self.case_sensitive_check, 6, 0, 1, 3)
+
         # Run button
         run_btn = QPushButton("Run XLOOKUP")
         run_btn.clicked.connect(self.run_xlookup)
-        layout.addWidget(run_btn, 6, 1, 1, 2, alignment=Qt.AlignCenter)
+        layout.addWidget(run_btn, 7, 1, 1, 2, alignment=Qt.AlignCenter)
 
         # Set white background and black text
         self.setStyleSheet("background-color: white; color: black;")
@@ -119,8 +125,21 @@ class XLookupApp(QWidget):
             return
 
         try:
-            map_series = self.df_b.drop_duplicates(subset=[lookup_b]).set_index(lookup_b)[value_b]
-            self.df_a[new_col] = self.df_a[lookup_a].map(map_series)
+            # Create mapping series from File B
+            df_b_unique = self.df_b.drop_duplicates(subset=[lookup_b])
+
+            if not self.case_sensitive_check.isChecked():
+                # Case insensitive matching - convert to lowercase
+                df_b_unique['temp_lookup'] = df_b_unique[lookup_b].str.lower()
+                map_series = df_b_unique.set_index('temp_lookup')[value_b]
+                self.df_a['temp_lookup'] = self.df_a[lookup_a].str.lower()
+                self.df_a[new_col] = self.df_a['temp_lookup'].map(map_series)
+                self.df_a.drop('temp_lookup', axis=1, inplace=True)
+            else:
+                # Case sensitive matching (original behavior)
+                map_series = df_b_unique.set_index(lookup_b)[value_b]
+                self.df_a[new_col] = self.df_a[lookup_a].map(map_series)
+
         except KeyError as e:
             QMessageBox.critical(self, "Error", f"Column not found:\n{e}")
             return
@@ -135,6 +154,7 @@ class XLookupApp(QWidget):
                 QMessageBox.information(self, "Done", f"File saved to {save_path}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save file:\n{e}")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
